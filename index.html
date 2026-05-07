@@ -1,0 +1,1555 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viswam EduTech Online Exam - Assessment Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --accent-light: #60a5fa;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --slate: #64748b;
+            --slate-light: #e2e8f0;
+            --bg-dark: #020617;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+        }
+
+        .login-title {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .role-btn {
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            color: var(--slate);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .role-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .app-container {
+            display: none;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .app-container.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 0.85em;
+            color: var(--slate);
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--slate);
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 10px 0;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.published {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--slate);
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        /* Question Card */
+        .question-card {
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .screenshot-upload {
+            border: 2px dashed var(--accent);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: rgba(59, 130, 246, 0.05);
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .screenshot-upload:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-light);
+        }
+
+        .screenshot-preview {
+            max-width: 250px;
+            max-height: 250px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 8px;
+        }
+
+        .exam-container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+
+        .exam-questions {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+        }
+
+        .question-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .question-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+            font-family: inherit;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .radio-option:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .exam-header {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .exam-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .timer-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .timer {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer.danger {
+            color: var(--danger);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(400px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            margin: 40px auto;
+        }
+
+        .result-score {
+            font-size: 4em;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 20px 0;
+        }
+
+        .result-status {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        .result-status.passed {
+            color: var(--success);
+        }
+
+        .result-status.failed {
+            color: var(--danger);
+        }
+
+        @media (max-width: 768px) {
+            .exam-container {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">🎓</div>
+                <h1 class="login-title">Viswam EduTech<br>Online Exam</h1>
+                <p style="color: var(--slate);">Professional Online Assessment Platform</p>
+            </div>
+
+            <div class="role-selector">
+                <button class="role-btn active" onclick="selectRole('admin')">👨‍💼 Admin</button>
+                <button class="role-btn" onclick="selectRole('student')">👤 Student</button>
+            </div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="admin@school.edu" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="admin123" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">🔓 Login</button>
+            </form>
+
+            <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-top: 20px; font-size: 0.85em; color: #93c5fd;">
+                <strong>Demo:</strong><br>
+                👨‍💼 Admin: admin@school.edu / admin123<br>
+                👤 Student: john@school.edu / student123
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appPage" class="app-container">
+        <div class="container">
+            <div class="header">
+                <div>
+                    <h1>🎓 Viswam EduTech</h1>
+                    <p style="color: var(--slate); font-size: 0.9em; margin-top: 4px;">Online Examination Platform</p>
+                </div>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+
+            <!-- Admin Panel -->
+            <div id="adminPanel" style="display: none;">
+                <div class="nav-tabs">
+                    <button class="tab-btn active" onclick="switchTab(event, 'admin-dashboard')">📊 Dashboard</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'create-paper')">📄 Create Paper</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'manage-papers')">📋 Manage Papers</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'bulk-upload')">📤 Bulk Upload</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'preview-paper')">👁️ Preview</button>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="admin-dashboard" class="content-section active">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">📄</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Papers</div>
+                            <div class="stat-value" id="paperCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">👥</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Students</div>
+                            <div class="stat-value" id="studentCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">✅</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Published</div>
+                            <div class="stat-value" id="publishedCount">0</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📋</span>
+                            <span>Recent Papers</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Questions</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardPapers">
+                                    <tr><td colspan="3" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">📭</div><p>No papers yet</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Paper -->
+                <div id="create-paper" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📄</span>
+                            <span>Create Question Paper</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Paper Title *</label>
+                            <input type="text" id="paperTitle">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Subject *</label>
+                                <input type="text" id="paperSubject">
+                            </div>
+                            <div class="form-group">
+                                <label>Class *</label>
+                                <input type="text" id="paperClass">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Duration (min) *</label>
+                                <input type="number" id="paperDuration" value="60" min="30">
+                            </div>
+                            <div class="form-group">
+                                <label>Total Marks *</label>
+                                <input type="number" id="paperMarks" value="100" min="10">
+                            </div>
+                        </div>
+
+                        <button onclick="addQuestionForm()" class="btn btn-secondary" style="width: auto;">➕ Add Question</button>
+                    </div>
+
+                    <div id="questionsContainer"></div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button onclick="savePaper('draft')" class="btn btn-secondary">💾 Save Draft</button>
+                        <button onclick="savePaper('published')" class="btn btn-primary" style="flex: 1;">📤 Publish</button>
+                    </div>
+                </div>
+
+                <!-- Manage Papers -->
+                <div id="manage-papers" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📋</span>
+                            <span>Manage Papers</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Subject</th>
+                                        <th>Questions</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="papersList">
+                                    <tr><td colspan="5" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">📭</div><p>No papers</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Upload -->
+                <div id="bulk-upload" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📤</span>
+                            <span>Bulk Upload Students</span>
+                        </div>
+
+                        <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-bottom: 20px; color: #93c5fd; font-size: 0.9em;">
+                            CSV Format: Email, First Name, Last Name, Student ID, Class
+                        </div>
+
+                        <div style="border: 2px dashed #3b82f6; border-radius: 12px; padding: 40px 20px; text-align: center; background: rgba(59, 130, 246, 0.05); margin: 20px 0;" id="uploadArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                            <div style="font-size: 2.5em; margin-bottom: 10px;">📁</div>
+                            <h3>Drop CSV/Excel Files Here</h3>
+                            <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+                            <button type="button" onclick="document.getElementById('csvFile').click()" class="btn btn-secondary" style="width: auto; margin-top: 10px;">📂 Choose File</button>
+                        </div>
+
+                        <div id="fileInfo" style="display: none;">
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <strong id="fileName"></strong><br>
+                                <span id="fileSize" style="color: var(--slate); font-size: 0.9em;"></span>
+                            </div>
+                            <button onclick="uploadCSV()" class="btn btn-primary">⬆️ Upload</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div id="preview-paper" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">👁️</span>
+                            <span>Preview Paper</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Paper:</label>
+                            <select id="previewSelect" onchange="loadPreview()">
+                                <option value="">-- Select --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="previewContent"></div>
+                </div>
+            </div>
+
+            <!-- Student Panel -->
+            <div id="studentPanel" style="display: none;">
+                <div class="nav-tabs">
+                    <button class="tab-btn active" onclick="switchTab(event, 'student-dashboard')">📊 Dashboard</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'available-papers')">📝 Papers</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'my-results')">✅ Results</button>
+                    <button class="tab-btn" id="exam-tab" style="display: none;" onclick="switchTab(event, 'take-exam')">🎯 Exam</button>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="student-dashboard" class="content-section active">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">📄</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Available</div>
+                            <div class="stat-value" id="availablePapers">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">✅</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Completed</div>
+                            <div class="stat-value" id="completedExams">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">📊</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Avg Score</div>
+                            <div class="stat-value" id="avgScore">--</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">👋</span>
+                            <span>Welcome</span>
+                        </div>
+                        <p id="welcomeMsg">Welcome! Practice with available papers.</p>
+                    </div>
+                </div>
+
+                <!-- Available Papers -->
+                <div id="available-papers" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📝</span>
+                            <span>Available Papers</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Subject</th>
+                                        <th>Questions</th>
+                                        <th>Duration</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="availablePapersList">
+                                    <tr><td colspan="5" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">📭</div><p>No papers available</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Take Exam -->
+                <div id="take-exam" class="content-section">
+                    <div class="exam-container">
+                        <div class="exam-questions">
+                            <div class="exam-header" id="examHeader"></div>
+                            <div id="examQuestionsContainer"></div>
+                            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                                <button onclick="submitExam()" class="btn btn-success" style="flex: 1;">✅ Submit Exam</button>
+                            </div>
+                        </div>
+
+                        <div style="position: sticky; top: 20px;">
+                            <div class="timer-box">
+                                <div class="timer" id="timer">00:00</div>
+                                <div style="color: var(--slate); font-size: 0.9em; margin-top: 8px;">Time Left</div>
+                            </div>
+                            <button onclick="backToPapers()" class="btn btn-secondary" style="width: 100%;">← Back</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="my-results" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">✅</span>
+                            <span>My Results</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Exam</th>
+                                        <th>Score</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsList">
+                                    <tr><td colspan="4" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">📭</div><p>No results</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notificationContainer"></div>
+
+    <script>
+        let currentUser = null;
+        let selectedRole = 'admin';
+        let questionCounter = 0;
+        let currentPaperId = null;
+        let currentExamData = null;
+        let examStartTime = null;
+        let examTimer = null;
+        let studentAnswers = {};
+        let questionImages = {};
+
+        let appData = {
+            users: [
+                { email: 'admin@school.edu', password: 'admin123', role: 'admin', name: 'Admin' },
+                { email: 'john@school.edu', password: 'student123', role: 'student', name: 'John Doe' }
+            ],
+            papers: [],
+            students: [],
+            results: []
+        };
+
+        function init() {
+            const saved = localStorage.getItem('examData');
+            if (saved) appData = { ...appData, ...JSON.parse(saved) };
+            const user = localStorage.getItem('currentUser');
+            if (user) {
+                currentUser = JSON.parse(user);
+                showApp();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('examData', JSON.stringify({ papers: appData.papers, students: appData.students, results: appData.results }));
+        }
+
+        function selectRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            const user = appData.users.find(u => u.email === email && u.password === pass && u.role === selectedRole);
+            if (!user) {
+                showNotification('Invalid credentials', 'error');
+                return;
+            }
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            showApp();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('appPage').classList.remove('active');
+        }
+
+        function showApp() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appPage').classList.add('active');
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('studentPanel').style.display = 'none';
+                updateAdminDashboard();
+            } else {
+                document.getElementById('studentPanel').style.display = 'block';
+                document.getElementById('adminPanel').style.display = 'none';
+                updateStudentDashboard();
+            }
+        }
+
+        function switchTab(event, tabName) {
+            if (event) event.preventDefault();
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            if (event) event.target.classList.add('active');
+        }
+
+        // Question Management
+        function addQuestionForm() {
+            questionCounter++;
+            const html = `
+                <div class="question-card" id="q-${questionCounter}">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <h4 style="color: var(--accent);">Question ${questionCounter}</h4>
+                        <button onclick="removeQuestion(${questionCounter})" class="btn btn-danger" style="padding: 4px 8px;">✕</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Question *</label>
+                        <textarea id="qtext${questionCounter}" rows="3" placeholder="Enter question"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Type *</label>
+                            <select id="qtype${questionCounter}" onchange="updateQType(${questionCounter})">
+                                <option value="mcq">Multiple Choice</option>
+                                <option value="short">Short Answer</option>
+                                <option value="long">Long Answer</option>
+                                <option value="numeric">Numeric</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Marks *</label>
+                            <input type="number" id="qmarks${questionCounter}" value="1" min="1">
+                        </div>
+                    </div>
+
+                    <div id="qoptions${questionCounter}"></div>
+
+                    <div class="form-group">
+                        <label>Attach Screenshot/Image</label>
+                        <div class="screenshot-upload" onclick="document.getElementById('qimage${questionCounter}').click()">
+                            <div style="font-size: 2em; margin-bottom: 8px;">📸</div>
+                            <div>Click or drag to upload screenshot</div>
+                        </div>
+                        <input type="file" id="qimage${questionCounter}" accept="image/*" style="display: none;" onchange="previewImage(${questionCounter})">
+                        <div id="qimage-preview${questionCounter}"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('questionsContainer').insertAdjacentHTML('beforeend', html);
+            updateQType(questionCounter);
+        }
+
+        function updateQType(id) {
+            const type = document.getElementById(`qtype${id}`).value;
+            const container = document.getElementById(`qoptions${id}`);
+
+            if (type === 'mcq') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Options:</label>
+                        <input type="text" placeholder="Option A" class="answer-input q-opt" data-opt="a">
+                        <input type="text" placeholder="Option B" class="answer-input q-opt" data-opt="b">
+                        <input type="text" placeholder="Option C" class="answer-input q-opt" data-opt="c">
+                        <input type="text" placeholder="Option D" class="answer-input q-opt" data-opt="d">
+                        <label style="margin-top: 10px;">Correct Answer:</label>
+                        <select id="qcorrect${id}">
+                            <option>A</option>
+                            <option>B</option>
+                            <option>C</option>
+                            <option>D</option>
+                        </select>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div class="form-group"><label>Expected Answer:</label><textarea class="answer-input" placeholder="Answer" rows="2"></textarea></div>`;
+            }
+        }
+
+        function removeQuestion(id) {
+            document.getElementById(`q-${id}`).remove();
+        }
+
+        function previewImage(id) {
+            const input = document.getElementById(`qimage${id}`);
+            const preview = document.getElementById(`qimage-preview${id}`);
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const imgData = e.target.result;
+                    questionImages[id] = imgData;
+                    preview.innerHTML = `<img src="${imgData}" class="screenshot-preview" alt="Screenshot"><br><button type="button" onclick="removeImage(${id})" class="btn btn-danger" style="padding: 4px 8px; width: auto; margin-top: 8px;">Remove Image</button>`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeImage(id) {
+            delete questionImages[id];
+            document.getElementById(`qimage${id}`).value = '';
+            document.getElementById(`qimage-preview${id}`).innerHTML = '';
+        }
+
+        function savePaper(status) {
+            const title = document.getElementById('paperTitle').value.trim();
+            const subject = document.getElementById('paperSubject').value.trim();
+            const paperClass = document.getElementById('paperClass').value.trim();
+            const duration = parseInt(document.getElementById('paperDuration').value);
+            const marks = parseInt(document.getElementById('paperMarks').value);
+
+            if (!title || !subject || !paperClass) {
+                showNotification('Please fill all fields', 'error');
+                return;
+            }
+
+            const questions = [];
+            document.querySelectorAll('[id^="q-"]').forEach((elem, idx) => {
+                const id = parseInt(elem.id.split('-')[1]);
+                const text = document.getElementById(`qtext${id}`).value.trim();
+                const type = document.getElementById(`qtype${id}`).value;
+                const marksValue = parseInt(document.getElementById(`qmarks${id}`).value);
+
+                if (!text) {
+                    showNotification(`Question ${idx + 1} is empty`, 'error');
+                    throw new Error('Empty');
+                }
+
+                const q = { id, text, type, marks: marksValue };
+                
+                // Add screenshot if attached
+                if (questionImages[id]) {
+                    q.image = questionImages[id];
+                }
+
+                if (type === 'mcq') {
+                    const opts = [];
+                    elem.querySelectorAll('[data-opt]').forEach(input => opts.push(input.value || 'Option'));
+                    q.options = opts;
+                    q.correct = document.getElementById(`qcorrect${id}`).value;
+                }
+
+                questions.push(q);
+            });
+
+            try {
+                const paper = {
+                    id: currentPaperId || Date.now(),
+                    title, subject, class: paperClass, duration, marks, questions, status,
+                    createdDate: new Date().toLocaleDateString()
+                };
+
+                const idx = appData.papers.findIndex(p => p.id === paper.id);
+                if (idx >= 0) {
+                    appData.papers[idx] = paper;
+                } else {
+                    appData.papers.push(paper);
+                }
+
+                saveData();
+                showNotification(`✓ Paper ${status}!`, 'success');
+                resetPaperForm();
+                updateAdminDashboard();
+            } catch (e) { }
+        }
+
+        function resetPaperForm() {
+            document.getElementById('paperTitle').value = '';
+            document.getElementById('paperSubject').value = '';
+            document.getElementById('paperClass').value = '';
+            document.getElementById('questionsContainer').innerHTML = '';
+            questionImages = {};
+            questionCounter = 0;
+        }
+
+        // Bulk Upload
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').style.background = 'rgba(59, 130, 246, 0.15)';
+        }
+
+        function handleDragLeave(e) {
+            document.getElementById('uploadArea').style.background = 'rgba(59, 130, 246, 0.05)';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').style.background = 'rgba(59, 130, 246, 0.05)';
+            handleFileSelect({ target: { files: e.dataTransfer.files } });
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = evt => {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+                document.getElementById('fileInfo').style.display = 'block';
+                window.csvData = evt.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        function uploadCSV() {
+            if (!window.csvData) return;
+
+            const lines = window.csvData.trim().split('\n');
+            let added = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const cols = lines[i].split(',').map(c => c.trim());
+                const student = {
+                    email: cols[0],
+                    firstName: cols[1],
+                    lastName: cols[2],
+                    studentId: cols[3],
+                    class: cols[4]
+                };
+
+                if (!appData.students.find(s => s.email === student.email)) {
+                    appData.students.push(student);
+                    added++;
+                }
+            }
+
+            saveData();
+            showNotification(`✓ ${added} students added!`, 'success');
+            updateAdminDashboard();
+        }
+
+        // Exam Interface
+        function startExam(paperId) {
+            const paper = appData.papers.find(p => p.id === paperId);
+            if (!paper) return;
+
+            currentExamData = paper;
+            studentAnswers = {};
+            paper.questions.forEach(q => studentAnswers[q.id] = '');
+
+            const header = document.getElementById('examHeader');
+            header.innerHTML = `
+                <div class="exam-title">${paper.title}</div>
+                <div style="color: var(--slate); margin-top: 10px;">
+                    📚 ${paper.questions.length} Questions | ⏱️ ${paper.duration} mins | 🎯 ${paper.marks} Marks
+                </div>
+            `;
+
+            const container = document.getElementById('examQuestionsContainer');
+            container.innerHTML = '';
+            paper.questions.forEach((q, idx) => {
+                let html = `
+                    <div class="question-item">
+                        <div class="question-text">Q${idx + 1}. ${q.text} <span style="color: var(--warning);">[${q.marks}]</span></div>
+                `;
+
+                // Show attached image if exists
+                if (q.image) {
+                    html += `<img src="${q.image}" class="question-image" alt="Question image">`;
+                }
+
+                if (q.type === 'mcq') {
+                    html += '<div>';
+                    q.options.forEach((opt, i) => {
+                        html += `
+                            <label class="radio-option">
+                                <input type="radio" name="q${q.id}" value="${String.fromCharCode(65 + i)}" onchange="studentAnswers[${q.id}] = this.value">
+                                <span>${String.fromCharCode(65 + i)}. ${opt}</span>
+                            </label>
+                        `;
+                    });
+                    html += '</div>';
+                } else if (q.type === 'short') {
+                    html += `<textarea class="answer-input" onchange="studentAnswers[${q.id}] = this.value" style="height: 80px;"></textarea>`;
+                } else if (q.type === 'long') {
+                    html += `<textarea class="answer-input" onchange="studentAnswers[${q.id}] = this.value" style="height: 150px;"></textarea>`;
+                } else if (q.type === 'numeric') {
+                    html += `<input type="number" class="answer-input" onchange="studentAnswers[${q.id}] = this.value">`;
+                }
+
+                html += '</div>';
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            examStartTime = Date.now();
+            startTimer(paper.duration * 60);
+
+            document.getElementById('exam-tab').style.display = 'block';
+            switchTab(null, 'take-exam');
+            document.getElementById('exam-tab').classList.add('active');
+        }
+
+        function startTimer(seconds) {
+            let remaining = seconds;
+            const timer = document.getElementById('timer');
+
+            examTimer = setInterval(() => {
+                remaining--;
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+                timer.className = '';
+                if (remaining <= 60) {
+                    timer.classList.add('danger');
+                    if (remaining === 60) showNotification('⏰ 1 minute left!', 'error');
+                }
+
+                if (remaining <= 0) {
+                    clearInterval(examTimer);
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function submitExam() {
+            if (examTimer) clearInterval(examTimer);
+
+            let score = 0;
+            const total = currentExamData.marks;
+
+            currentExamData.questions.forEach(q => {
+                const userAnswer = studentAnswers[q.id];
+                if (q.type === 'mcq' && userAnswer === q.correct) {
+                    score += q.marks;
+                }
+            });
+
+            const percentage = Math.round((score / total) * 100);
+            const result = {
+                examTitle: currentExamData.title,
+                score: percentage,
+                marks: score,
+                total: total,
+                date: new Date().toLocaleDateString(),
+                studentEmail: currentUser.email
+            };
+
+            appData.results.push(result);
+            saveData();
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div style="font-size: 3em;">🎉</div>
+                    <div class="exam-title">Exam Submitted</div>
+                    <div class="result-status ${percentage >= 60 ? 'passed' : 'failed'}">
+                        ${percentage >= 60 ? '✓ PASSED' : '✗ FAILED'}
+                    </div>
+                    <div class="result-score">${percentage}%</div>
+                    <div style="color: var(--slate); margin: 20px 0;">
+                        Score: ${score} / ${total} marks
+                    </div>
+                    <button onclick="backToPapers()" class="btn btn-primary" style="width: auto;">← Back to Papers</button>
+                </div>
+            `;
+
+            document.getElementById('examQuestionsContainer').innerHTML = resultHtml;
+            updateStudentDashboard();
+            showNotification('✓ Exam submitted!', 'success');
+        }
+
+        function backToPapers() {
+            currentExamData = null;
+            switchTab(null, 'available-papers');
+        }
+
+        // Admin Dashboard
+        function updateAdminDashboard() {
+            document.getElementById('paperCount').textContent = appData.papers.length;
+            document.getElementById('studentCount').textContent = appData.students.length;
+            document.getElementById('publishedCount').textContent = appData.papers.filter(p => p.status === 'published').length;
+
+            const tbody = document.getElementById('dashboardPapers');
+            if (appData.papers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3">No papers</td></tr>';
+            } else {
+                tbody.innerHTML = appData.papers.slice(-5).reverse().map(p => `
+                    <tr>
+                        <td>${p.title}</td>
+                        <td>${p.questions.length}</td>
+                        <td><span class="status-badge ${p.status}">${p.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            const papersList = document.getElementById('papersList');
+            if (appData.papers.length === 0) {
+                papersList.innerHTML = '<tr><td colspan="5">No papers</td></tr>';
+            } else {
+                papersList.innerHTML = appData.papers.map(p => `
+                    <tr>
+                        <td>${p.title}</td>
+                        <td>${p.subject}</td>
+                        <td>${p.questions.length}</td>
+                        <td><span class="status-badge ${p.status}">${p.status}</span></td>
+                        <td>
+                            <button onclick="editPaper(${p.id})" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8em;">Edit</button>
+                            <button onclick="deletePaper(${p.id})" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            const previewSelect = document.getElementById('previewSelect');
+            previewSelect.innerHTML = '<option value="">-- Select --</option>' +
+                appData.papers.filter(p => p.status === 'published').map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+        }
+
+        function editPaper(id) {
+            const paper = appData.papers.find(p => p.id === id);
+            if (!paper) return;
+
+            document.getElementById('paperTitle').value = paper.title;
+            document.getElementById('paperSubject').value = paper.subject;
+            document.getElementById('paperClass').value = paper.class;
+            document.getElementById('paperDuration').value = paper.duration;
+            document.getElementById('paperMarks').value = paper.marks;
+            document.getElementById('questionsContainer').innerHTML = '';
+            questionImages = {};
+            questionCounter = 0;
+
+            paper.questions.forEach(q => {
+                addQuestionForm();
+                const id = questionCounter;
+                document.getElementById(`qtext${id}`).value = q.text;
+                document.getElementById(`qtype${id}`).value = q.type;
+                document.getElementById(`qmarks${id}`).value = q.marks;
+
+                // Restore image if exists
+                if (q.image) {
+                    questionImages[id] = q.image;
+                    document.getElementById(`qimage-preview${id}`).innerHTML = `<img src="${q.image}" class="screenshot-preview" alt="Screenshot"><br><button type="button" onclick="removeImage(${id})" class="btn btn-danger" style="padding: 4px 8px; width: auto; margin-top: 8px;">Remove Image</button>`;
+                }
+
+                setTimeout(() => {
+                    updateQType(id);
+                    if (q.type === 'mcq') {
+                        const inputs = document.querySelectorAll(`#q-${id} [data-opt]`);
+                        q.options.forEach((opt, i) => {
+                            if (inputs[i]) inputs[i].value = opt;
+                        });
+                        document.getElementById(`qcorrect${id}`).value = q.correct;
+                    }
+                }, 0);
+            });
+
+            currentPaperId = id;
+            switchTab(null, 'create-paper');
+        }
+
+        function deletePaper(id) {
+            if (!confirm('Delete?')) return;
+            appData.papers = appData.papers.filter(p => p.id !== id);
+            saveData();
+            updateAdminDashboard();
+            showNotification('Paper deleted', 'success');
+        }
+
+        function loadPreview() {
+            const paperId = parseInt(document.getElementById('previewSelect').value);
+            const paper = appData.papers.find(p => p.id === paperId);
+            if (!paper) return;
+
+            let html = `<div class="card" style="background: white; color: #000; padding: 30px; border-radius: 12px; margin-top: 20px;">
+                <h2 style="color: #000;">${paper.title}</h2>
+                <p>${paper.subject} | ${paper.duration} min | ${paper.marks} Marks</p>
+            `;
+
+            paper.questions.forEach((q, idx) => {
+                html += `<div style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid #ccc;">
+                    <strong>${idx + 1}. ${q.text}</strong> <span style="color: #999;">[${q.marks}]</span>
+                `;
+
+                if (q.image) {
+                    html += `<div><img src="${q.image}" style="max-width: 100%; max-height: 300px; margin: 10px 0; border-radius: 6px;"></div>`;
+                }
+
+                if (q.type === 'mcq') {
+                    html += '<div style="margin: 10px 0 0 20px;">';
+                    q.options.forEach((opt, i) => {
+                        html += `<div>${String.fromCharCode(65 + i)}. ${opt}</div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<div style="margin: 10px 0 0 20px; color: #999;">[Answer space]</div>';
+                }
+
+                html += '</div>';
+            });
+
+            html += '</div>';
+            document.getElementById('previewContent').innerHTML = html;
+        }
+
+        // Student Dashboard
+        function updateStudentDashboard() {
+            const published = appData.papers.filter(p => p.status === 'published');
+            const myResults = appData.results.filter(r => r.studentEmail === currentUser.email);
+
+            document.getElementById('availablePapers').textContent = published.length;
+            document.getElementById('completedExams').textContent = myResults.length;
+
+            let avgScore = '--';
+            if (myResults.length > 0) {
+                const avg = myResults.reduce((sum, r) => sum + r.score, 0) / myResults.length;
+                avgScore = Math.round(avg) + '%';
+            }
+            document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('welcomeMsg').textContent = `Welcome, ${currentUser.name}!`;
+
+            const papersList = document.getElementById('availablePapersList');
+            if (published.length === 0) {
+                papersList.innerHTML = '<tr><td colspan="5">No papers</td></tr>';
+            } else {
+                papersList.innerHTML = published.map(p => `
+                    <tr>
+                        <td>${p.title}</td>
+                        <td>${p.subject}</td>
+                        <td>${p.questions.length}</td>
+                        <td>${p.duration} min</td>
+                        <td><button onclick="startExam(${p.id})" class="btn btn-primary" style="padding: 4px 8px;">Start</button></td>
+                    </tr>
+                `).join('');
+            }
+
+            const resultsList = document.getElementById('resultsList');
+            if (myResults.length === 0) {
+                resultsList.innerHTML = '<tr><td colspan="4">No results</td></tr>';
+            } else {
+                resultsList.innerHTML = myResults.map(r => `
+                    <tr>
+                        <td>${r.examTitle}</td>
+                        <td><strong>${r.score}%</strong></td>
+                        <td><span class="status-badge ${r.score >= 60 ? 'active' : ''}">${r.score >= 60 ? '✓' : '✗'}</span></td>
+                        <td>${r.date}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function showNotification(msg, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `notification ${type}`;
+            div.textContent = msg;
+            document.getElementById('notificationContainer').appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
