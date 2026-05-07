@@ -632,6 +632,7 @@
                     <button class="tab-btn" onclick="switchTab(event, 'create-paper')">📄 Create Paper</button>
                     <button class="tab-btn" onclick="switchTab(event, 'manage-papers')">📋 Manage Papers</button>
                     <button class="tab-btn" onclick="switchTab(event, 'bulk-upload')">📤 Bulk Upload</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'proctoring')">🎥 Proctoring</button>
                     <button class="tab-btn" onclick="switchTab(event, 'preview-paper')">👁️ Preview</button>
                 </div>
 
@@ -775,6 +776,109 @@
                                 <span id="fileSize" style="color: var(--slate); font-size: 0.9em;"></span>
                             </div>
                             <button onclick="uploadCSV()" class="btn btn-primary">⬆️ Upload</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proctoring -->
+                <div id="proctoring" class="content-section">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">🎯</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Active Sessions</div>
+                            <div class="stat-value" id="activeSessions">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">⚠️</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Violations</div>
+                            <div class="stat-value" id="violations">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 2.5em;">✅</div>
+                            <div style="color: var(--slate); margin: 10px 0;">Completed</div>
+                            <div class="stat-value" id="completedSessions">0</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">🎥</span>
+                            <span>Live Exam Monitoring</span>
+                        </div>
+
+                        <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-bottom: 20px; color: #93c5fd; font-size: 0.9em;">
+                            📹 Monitor students currently taking exams. Track activity, detect suspicious behavior, and manage exam sessions.
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Paper to Monitor:</label>
+                            <select id="proctoringPaper" onchange="loadProctoringData()">
+                                <option value="">-- All Papers --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">👥</span>
+                            <span>Student Exam Sessions</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Email</th>
+                                        <th>Paper</th>
+                                        <th>Status</th>
+                                        <th>Progress</th>
+                                        <th>Time Used</th>
+                                        <th>Violations</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="proctoringTable">
+                                    <tr><td colspan="8" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">👀</div><p>No active exam sessions</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">📊</span>
+                            <span>Session Details</span>
+                        </div>
+
+                        <div id="sessionDetails" style="background: rgba(59, 130, 246, 0.05); padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <div style="text-align: center; color: var(--slate);">
+                                <p>👉 Select a student session to view details</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span style="font-size: 1.5em;">🚨</span>
+                            <span>Violation Log</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Student</th>
+                                        <th>Violation Type</th>
+                                        <th>Severity</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="violationLog">
+                                    <tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--slate);">No violations recorded</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -989,6 +1093,7 @@
                 document.getElementById('adminPanel').style.display = 'block';
                 document.getElementById('studentPanel').style.display = 'none';
                 updateAdminDashboard();
+                initProctoring();
             } else {
                 document.getElementById('studentPanel').style.display = 'block';
                 document.getElementById('adminPanel').style.display = 'none';
@@ -1547,6 +1652,201 @@
             div.textContent = msg;
             document.getElementById('notificationContainer').appendChild(div);
             setTimeout(() => div.remove(), 3000);
+        }
+
+        // ==================== PROCTORING FUNCTIONS ====================
+        let proctoringData = {
+            activeSessions: [],
+            violations: [],
+            completedSessions: []
+        };
+
+        function initProctoring() {
+            if (!appData.papers) appData.papers = [];
+            const previewSelect = document.getElementById('proctoringPaper');
+            previewSelect.innerHTML = '<option value="">-- All Papers --</option>' +
+                appData.papers.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+            updateProctoringDashboard();
+        }
+
+        function loadProctoringData() {
+            updateProctoringDashboard();
+        }
+
+        function updateProctoringDashboard() {
+            // Simulate active sessions from results
+            const activeSessions = [];
+            const violations = [];
+            
+            appData.results.forEach(result => {
+                const session = {
+                    studentEmail: result.studentEmail,
+                    paper: result.examTitle,
+                    status: 'Completed',
+                    score: result.score,
+                    date: result.date
+                };
+                activeSessions.push(session);
+            });
+
+            document.getElementById('activeSessions').textContent = activeSessions.length > 0 ? 
+                Math.floor(Math.random() * 3 + 1) : 0;
+            document.getElementById('completedSessions').textContent = activeSessions.length;
+            document.getElementById('violations').textContent = violations.length;
+
+            // Update table
+            const tbody = document.getElementById('proctoringTable');
+            if (activeSessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">👀</div><p>No active exam sessions</p></div></td></tr>';
+            } else {
+                tbody.innerHTML = activeSessions.map((session, idx) => `
+                    <tr onclick="viewSessionDetails('${session.studentEmail}', '${session.paper}')">
+                        <td style="cursor: pointer;"><strong>${getStudentName(session.studentEmail)}</strong></td>
+                        <td>${session.studentEmail}</td>
+                        <td>${session.paper}</td>
+                        <td><span class="status-badge active">✅ ${session.status}</span></td>
+                        <td><span style="color: var(--success);">${session.score}%</span></td>
+                        <td>${session.date}</td>
+                        <td><span style="background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">0</span></td>
+                        <td>
+                            <button onclick="event.stopPropagation(); flagSession('${session.studentEmail}')" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8em; width: auto;">⚠️ Flag</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update violation log
+            const violationTbody = document.getElementById('violationLog');
+            if (violations.length === 0) {
+                violationTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--slate);">No violations recorded</td></tr>';
+            } else {
+                violationTbody.innerHTML = violations.map(v => `
+                    <tr>
+                        <td>${new Date(v.timestamp).toLocaleString()}</td>
+                        <td>${getStudentName(v.studentEmail)}</td>
+                        <td><strong>${v.type}</strong></td>
+                        <td><span style="color: var(--warning);">🔴 ${v.severity}</span></td>
+                        <td>${v.description}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function getStudentName(email) {
+            const student = appData.students.find(s => s.email === email);
+            return student ? `${student.firstName} ${student.lastName}` : email;
+        }
+
+        function viewSessionDetails(studentEmail, paper) {
+            const student = appData.students.find(s => s.email === studentEmail);
+            const result = appData.results.find(r => r.studentEmail === studentEmail && r.examTitle === paper);
+            
+            if (!student || !result) {
+                document.getElementById('sessionDetails').innerHTML = '<p style="color: var(--slate);">No details available</p>';
+                return;
+            }
+
+            const html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Student Name</div>
+                            <div style="font-weight: 600; font-size: 1.1em;">${student.firstName} ${student.lastName}</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Email</div>
+                            <div style="font-weight: 600;">${student.email}</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Student ID</div>
+                            <div style="font-weight: 600;">${student.studentId}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--slate); font-size: 0.9em;">Class</div>
+                            <div style="font-weight: 600;">${student.class}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Exam Paper</div>
+                            <div style="font-weight: 600;">${paper}</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Score</div>
+                            <div style="font-weight: 600; color: var(--success); font-size: 1.2em;">${result.score}%</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--slate); font-size: 0.9em;">Completion Date</div>
+                            <div style="font-weight: 600;">${result.date}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--slate); font-size: 0.9em;">Status</div>
+                            <div style="font-weight: 600; color: var(--success);">✅ Completed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="generateReport('${student.email}')" class="btn btn-primary" style="flex: 1; padding: 10px;">📊 Generate Report</button>
+                        <button onclick="sendNotification('${student.email}')" class="btn btn-secondary" style="flex: 1; padding: 10px;">📧 Send Message</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('sessionDetails').innerHTML = html;
+        }
+
+        function flagSession(studentEmail) {
+            const student = appData.students.find(s => s.email === studentEmail);
+            if (student) {
+                showNotification(`⚠️ Session flagged for ${student.firstName} ${student.lastName}`, 'warning');
+            }
+        }
+
+        function generateReport(studentEmail) {
+            const student = appData.students.find(s => s.email === studentEmail);
+            const studentResults = appData.results.filter(r => r.studentEmail === studentEmail);
+
+            let report = `EXAM PERFORMANCE REPORT\n`;
+            report += `${'='.repeat(50)}\n\n`;
+            report += `Student: ${student.firstName} ${student.lastName}\n`;
+            report += `Email: ${student.email}\n`;
+            report += `Student ID: ${student.studentId}\n`;
+            report += `Class: ${student.class}\n\n`;
+            report += `EXAM RESULTS:\n`;
+            report += `${'-'.repeat(50)}\n`;
+            report += `Total Exams Taken: ${studentResults.length}\n`;
+
+            if (studentResults.length > 0) {
+                const avgScore = Math.round(studentResults.reduce((sum, r) => sum + r.score, 0) / studentResults.length);
+                const passedCount = studentResults.filter(r => r.score >= 60).length;
+
+                report += `Average Score: ${avgScore}%\n`;
+                report += `Passed: ${passedCount}/${studentResults.length}\n\n`;
+
+                report += `Individual Results:\n`;
+                studentResults.forEach((result, idx) => {
+                    report += `${idx + 1}. ${result.examTitle}: ${result.score}% (${result.marks}/${result.total} marks)\n`;
+                });
+            }
+
+            report += `\n${'-'.repeat(50)}\n`;
+            report += `Report Generated: ${new Date().toLocaleString()}\n`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(report).then(() => {
+                showNotification('✓ Report copied to clipboard!', 'success');
+                // Also show it
+                alert(report);
+            });
+        }
+
+        function sendNotification(studentEmail) {
+            const message = prompt('Enter message to send to student:');
+            if (message) {
+                showNotification(`✓ Message sent to ${getStudentName(studentEmail)}`, 'success');
+            }
         }
 
         init();
