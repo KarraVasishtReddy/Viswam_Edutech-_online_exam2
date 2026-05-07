@@ -1039,7 +1039,8 @@
             ],
             papers: [],
             students: [],
-            results: []
+            results: [],
+            violations: []
         };
 
         function init() {
@@ -1053,7 +1054,7 @@
         }
 
         function saveData() {
-            localStorage.setItem('examData', JSON.stringify({ papers: appData.papers, students: appData.students, results: appData.results }));
+            localStorage.setItem('examData', JSON.stringify({ papers: appData.papers, students: appData.students, results: appData.results, violations: appData.violations }));
         }
 
         function selectRole(role) {
@@ -1661,7 +1662,15 @@
             completedSessions: []
         };
 
+        // Initialize violations in appData
+        function initViolationsData() {
+            if (!appData.violations) {
+                appData.violations = [];
+            }
+        }
+
         function initProctoring() {
+            initViolationsData();
             if (!appData.papers) appData.papers = [];
             const previewSelect = document.getElementById('proctoringPaper');
             previewSelect.innerHTML = '<option value="">-- All Papers --</option>' +
@@ -1676,7 +1685,6 @@
         function updateProctoringDashboard() {
             // Simulate active sessions from results
             const activeSessions = [];
-            const violations = [];
             
             appData.results.forEach(result => {
                 const session = {
@@ -1684,15 +1692,26 @@
                     paper: result.examTitle,
                     status: 'Completed',
                     score: result.score,
-                    date: result.date
+                    date: result.date,
+                    marks: result.marks,
+                    total: result.total
                 };
                 activeSessions.push(session);
+            });
+
+            // Count violations
+            initViolationsData();
+            const violationCount = appData.violations.length;
+            const studentViolations = {};
+            
+            appData.violations.forEach(v => {
+                studentViolations[v.studentEmail] = (studentViolations[v.studentEmail] || 0) + 1;
             });
 
             document.getElementById('activeSessions').textContent = activeSessions.length > 0 ? 
                 Math.floor(Math.random() * 3 + 1) : 0;
             document.getElementById('completedSessions').textContent = activeSessions.length;
-            document.getElementById('violations').textContent = violations.length;
+            document.getElementById('violations').textContent = violationCount;
 
             // Update table
             const tbody = document.getElementById('proctoringTable');
@@ -1707,9 +1726,9 @@
                         <td><span class="status-badge active">✅ ${session.status}</span></td>
                         <td><span style="color: var(--success);">${session.score}%</span></td>
                         <td>${session.date}</td>
-                        <td><span style="background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">0</span></td>
+                        <td><span style="background: rgba(239, 68, 68, 0.2); color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">${studentViolations[session.studentEmail] || 0}</span></td>
                         <td>
-                            <button onclick="event.stopPropagation(); flagSession('${session.studentEmail}')" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8em; width: auto;">⚠️ Flag</button>
+                            <button onclick="event.stopPropagation(); showViolationForm('${session.studentEmail}', '${session.paper}')" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8em; width: auto;">⚠️ Flag</button>
                         </td>
                     </tr>
                 `).join('');
@@ -1717,16 +1736,16 @@
 
             // Update violation log
             const violationTbody = document.getElementById('violationLog');
-            if (violations.length === 0) {
+            if (appData.violations.length === 0) {
                 violationTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--slate);">No violations recorded</td></tr>';
             } else {
-                violationTbody.innerHTML = violations.map(v => `
+                violationTbody.innerHTML = appData.violations.slice().reverse().map(v => `
                     <tr>
-                        <td>${new Date(v.timestamp).toLocaleString()}</td>
-                        <td>${getStudentName(v.studentEmail)}</td>
+                        <td style="font-size: 0.9em;">${new Date(v.timestamp).toLocaleString()}</td>
+                        <td><strong>${getStudentName(v.studentEmail)}</strong></td>
                         <td><strong>${v.type}</strong></td>
-                        <td><span style="color: var(--warning);">🔴 ${v.severity}</span></td>
-                        <td>${v.description}</td>
+                        <td><span style="color: var(--warning); font-weight: 600; background: rgba(245, 158, 11, 0.2); padding: 4px 8px; border-radius: 4px; display: inline-block;">🔴 ${v.severity}</span></td>
+                        <td style="font-size: 0.9em;">${v.description}</td>
                     </tr>
                 `).join('');
             }
@@ -1745,6 +1764,10 @@
                 document.getElementById('sessionDetails').innerHTML = '<p style="color: var(--slate);">No details available</p>';
                 return;
             }
+
+            // Count violations for this student
+            initViolationsData();
+            const studentViolationCount = appData.violations.filter(v => v.studentEmail === studentEmail).length;
 
             const html = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -1776,12 +1799,12 @@
                             <div style="font-weight: 600; color: var(--success); font-size: 1.2em;">${result.score}%</div>
                         </div>
                         <div style="margin-bottom: 15px;">
-                            <div style="color: var(--slate); font-size: 0.9em;">Completion Date</div>
-                            <div style="font-weight: 600;">${result.date}</div>
+                            <div style="color: var(--slate); font-size: 0.9em;">Violations Recorded</div>
+                            <div style="font-weight: 600; color: var(--danger); font-size: 1.2em;">🚨 ${studentViolationCount}</div>
                         </div>
                         <div>
-                            <div style="color: var(--slate); font-size: 0.9em;">Status</div>
-                            <div style="font-weight: 600; color: var(--success);">✅ Completed</div>
+                            <div style="color: var(--slate); font-size: 0.9em;">Completion Date</div>
+                            <div style="font-weight: 600;">${result.date}</div>
                         </div>
                     </div>
                 </div>
@@ -1789,7 +1812,7 @@
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
                     <div style="display: flex; gap: 10px;">
                         <button onclick="generateReport('${student.email}')" class="btn btn-primary" style="flex: 1; padding: 10px;">📊 Generate Report</button>
-                        <button onclick="sendNotification('${student.email}')" class="btn btn-secondary" style="flex: 1; padding: 10px;">📧 Send Message</button>
+                        <button onclick="showViolationForm('${student.email}', '${paper}')" class="btn btn-danger" style="flex: 1; padding: 10px;">⚠️ Record Violation</button>
                     </div>
                 </div>
             `;
@@ -1797,25 +1820,77 @@
             document.getElementById('sessionDetails').innerHTML = html;
         }
 
+        function showViolationForm(studentEmail, paper) {
+            const violationType = prompt('Select Violation Type:\n1. Tab Switching\n2. Unauthorized App\n3. Suspicious Behavior\n4. Network Issue\n5. Other\n\nEnter number (1-5):');
+            
+            if (!violationType) return;
+
+            const types = {
+                '1': 'Tab Switching',
+                '2': 'Unauthorized App',
+                '3': 'Suspicious Behavior',
+                '4': 'Network Issue',
+                '5': 'Other'
+            };
+
+            const severities = {
+                '1': 'Low',
+                '2': 'Medium',
+                '3': 'High',
+                '4': 'Medium',
+                '5': 'Low'
+            };
+
+            const type = types[violationType] || 'Other';
+            const severity = severities[violationType] || 'Low';
+            const description = prompt(`Enter description for "${type}" violation:`);
+
+            if (!description) return;
+
+            recordViolation(studentEmail, type, severity, description, paper);
+        }
+
+        function recordViolation(studentEmail, type, severity, description, paper) {
+            initViolationsData();
+            
+            const violation = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                studentEmail: studentEmail,
+                studentName: getStudentName(studentEmail),
+                paper: paper,
+                type: type,
+                severity: severity,
+                description: description
+            };
+
+            appData.violations.push(violation);
+            saveData();
+            updateProctoringDashboard();
+            showNotification(`✅ Violation recorded for ${getStudentName(studentEmail)}`, 'success');
+        }
+
         function flagSession(studentEmail) {
             const student = appData.students.find(s => s.email === studentEmail);
             if (student) {
-                showNotification(`⚠️ Session flagged for ${student.firstName} ${student.lastName}`, 'warning');
+                showViolationForm(studentEmail, 'General');
             }
         }
 
         function generateReport(studentEmail) {
             const student = appData.students.find(s => s.email === studentEmail);
             const studentResults = appData.results.filter(r => r.studentEmail === studentEmail);
+            const studentViolations = appData.violations.filter(v => v.studentEmail === studentEmail);
 
-            let report = `EXAM PERFORMANCE REPORT\n`;
-            report += `${'='.repeat(50)}\n\n`;
+            let report = `EXAM PERFORMANCE & PROCTORING REPORT\n`;
+            report += `${'='.repeat(60)}\n\n`;
             report += `Student: ${student.firstName} ${student.lastName}\n`;
             report += `Email: ${student.email}\n`;
             report += `Student ID: ${student.studentId}\n`;
             report += `Class: ${student.class}\n\n`;
+
             report += `EXAM RESULTS:\n`;
-            report += `${'-'.repeat(50)}\n`;
+            report += `${'-'.repeat(60)}\n`;
             report += `Total Exams Taken: ${studentResults.length}\n`;
 
             if (studentResults.length > 0) {
@@ -1827,17 +1902,36 @@
 
                 report += `Individual Results:\n`;
                 studentResults.forEach((result, idx) => {
-                    report += `${idx + 1}. ${result.examTitle}: ${result.score}% (${result.marks}/${result.total} marks)\n`;
+                    report += `${idx + 1}. ${result.examTitle}: ${result.score}% (${result.marks}/${result.total} marks) - ${result.date}\n`;
                 });
             }
 
-            report += `\n${'-'.repeat(50)}\n`;
+            report += `\n${'-'.repeat(60)}\n`;
+            report += `PROCTORING VIOLATIONS:\n`;
+            report += `${'-'.repeat(60)}\n`;
+            report += `Total Violations: ${studentViolations.length}\n\n`;
+
+            if (studentViolations.length > 0) {
+                report += `Violation Details:\n`;
+                studentViolations.forEach((v, idx) => {
+                    report += `${idx + 1}. [${v.severity}] ${v.type}\n`;
+                    report += `   Time: ${new Date(v.timestamp).toLocaleString()}\n`;
+                    report += `   Description: ${v.description}\n\n`;
+                });
+            } else {
+                report += `No violations recorded. ✅ Clean exam session.\n\n`;
+            }
+
+            report += `${'-'.repeat(60)}\n`;
             report += `Report Generated: ${new Date().toLocaleString()}\n`;
+            report += `Generated by: Viswam EduTech Admin Panel\n`;
 
             // Copy to clipboard
             navigator.clipboard.writeText(report).then(() => {
                 showNotification('✓ Report copied to clipboard!', 'success');
                 // Also show it
+                alert(report);
+            }).catch(() => {
                 alert(report);
             });
         }
