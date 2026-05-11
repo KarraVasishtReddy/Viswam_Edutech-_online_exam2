@@ -1180,7 +1180,7 @@
                     </div>
                 `;
             } else {
-                container.innerHTML = `<div class="form-group"><label>Expected Answer:</label><textarea class="answer-input" placeholder="Answer" rows="2"></textarea></div>`;
+                container.innerHTML = `<div class="form-group"><label>Expected Answer:</label><textarea id="qanswer${id}" class="answer-input" placeholder="Enter expected answer for marking reference" rows="3" style="min-height: 80px;"></textarea></div>`;
             }
         }
 
@@ -1245,6 +1245,14 @@
                     elem.querySelectorAll('[data-opt]').forEach(input => opts.push(input.value || 'Option'));
                     q.options = opts;
                     q.correct = document.getElementById(`qcorrect${id}`).value;
+                } else {
+                    // For short, long, and numeric questions - get expected answer
+                    const answerElem = document.getElementById(`qanswer${id}`);
+                    if (answerElem) {
+                        q.answer = answerElem.value.trim();
+                    } else {
+                        q.answer = '';
+                    }
                 }
 
                 questions.push(q);
@@ -1427,12 +1435,92 @@
 
             let score = 0;
             const total = currentExamData.marks;
+            const answeredQuestions = [];
 
             currentExamData.questions.forEach(q => {
                 const userAnswer = studentAnswers[q.id];
-                if (q.type === 'mcq' && userAnswer === q.correct) {
-                    score += q.marks;
+                let marksAwarded = 0;
+                
+                // Track all answers
+                answeredQuestions.push({
+                    questionId: q.id,
+                    questionText: q.text,
+                    type: q.type,
+                    studentAnswer: userAnswer || '[No Answer]',
+                    marks: q.marks,
+                    correct: q.correct || q.answer || '',
+                    marksAwarded: 0
+                });
+
+                // Score MCQ questions
+                if (q.type === 'mcq') {
+                    if (userAnswer === q.correct) {
+                        marksAwarded = q.marks;
+                        score += q.marks;
+                    }
                 }
+                // Score Short Answer questions - AUTO MARKING
+                else if (q.type === 'short') {
+                    if (userAnswer && userAnswer.trim()) {
+                        const similarity = calculateSimilarity(userAnswer, q.answer);
+                        if (similarity >= 0.7) {
+                            marksAwarded = q.marks; // Full marks
+                            score += q.marks;
+                        } else if (similarity >= 0.4) {
+                            marksAwarded = Math.floor(q.marks * 0.5); // Half marks
+                            score += marksAwarded;
+                        } else if (similarity >= 0.2) {
+                            marksAwarded = Math.floor(q.marks * 0.25); // 25% marks
+                            score += marksAwarded;
+                        }
+                    }
+                }
+                // Score Long Answer questions - AUTO MARKING
+                else if (q.type === 'long') {
+                    if (userAnswer && userAnswer.trim()) {
+                        const wordCount = userAnswer.split(/\s+/).length;
+                        const similarity = calculateSimilarity(userAnswer, q.answer);
+                        
+                        // Award based on length and similarity
+                        if (similarity >= 0.6 && wordCount >= 50) {
+                            marksAwarded = q.marks; // Full marks
+                            score += q.marks;
+                        } else if (similarity >= 0.4 && wordCount >= 30) {
+                            marksAwarded = Math.floor(q.marks * 0.75); // 75% marks
+                            score += marksAwarded;
+                        } else if (similarity >= 0.2 && wordCount >= 20) {
+                            marksAwarded = Math.floor(q.marks * 0.5); // 50% marks
+                            score += marksAwarded;
+                        } else if (wordCount >= 10) {
+                            marksAwarded = Math.floor(q.marks * 0.25); // 25% marks
+                            score += marksAwarded;
+                        }
+                    }
+                }
+                // Score Numeric questions
+                else if (q.type === 'numeric') {
+                    if (userAnswer && userAnswer.trim()) {
+                        try {
+                            const userNum = parseFloat(userAnswer);
+                            const correctNum = parseFloat(q.answer);
+                            
+                            if (!isNaN(userNum) && !isNaN(correctNum)) {
+                                const tolerance = correctNum * 0.05; // 5% tolerance
+                                if (Math.abs(userNum - correctNum) <= tolerance) {
+                                    marksAwarded = q.marks;
+                                    score += q.marks;
+                                } else if (Math.abs(userNum - correctNum) <= tolerance * 2) {
+                                    marksAwarded = Math.floor(q.marks * 0.5);
+                                    score += marksAwarded;
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // Update marks awarded in answer tracking
+                const answerIndex = answeredQuestions.length - 1;
+                answeredQuestions[answerIndex].marksAwarded = marksAwarded;
             });
 
             const percentage = Math.round((score / total) * 100);
@@ -1442,11 +1530,17 @@
                 marks: score,
                 total: total,
                 date: new Date().toLocaleDateString(),
-                studentEmail: currentUser.email
+                studentEmail: currentUser.email,
+                answers: answeredQuestions,
+                timeTaken: new Date().toLocaleTimeString(),
+                autoMarked: true
             };
 
             appData.results.push(result);
             saveData();
+
+            const answeredCount = answeredQuestions.filter(a => a.studentAnswer !== '[No Answer]').length;
+            const markedCount = answeredQuestions.filter(a => a.marksAwarded > 0).length;
 
             const resultHtml = `
                 <div class="result-card">
@@ -1457,7 +1551,9 @@
                     </div>
                     <div class="result-score">${percentage}%</div>
                     <div style="color: var(--slate); margin: 20px 0;">
-                        Score: ${score} / ${total} marks
+                        Score: ${score} / ${total} marks<br>
+                        <span style="font-size: 0.9em;">Answered: ${answeredCount}/${answeredQuestions.length} | Marked: ${markedCount}</span><br>
+                        <span style="font-size: 0.85em; color: #60a5fa;">✓ Auto-marked with AI</span>
                     </div>
                     <button onclick="backToPapers()" class="btn btn-primary" style="width: auto;">← Back to Papers</button>
                 </div>
@@ -1465,7 +1561,29 @@
 
             document.getElementById('examQuestionsContainer').innerHTML = resultHtml;
             updateStudentDashboard();
-            showNotification('✓ Exam submitted!', 'success');
+            showNotification('✓ Exam submitted! Auto-marked with AI', 'success');
+        }
+
+        // Calculate text similarity between student answer and expected answer
+        function calculateSimilarity(str1, str2) {
+            if (!str1 || !str2) return 0;
+            
+            // Normalize strings
+            const normalize = (s) => s.toLowerCase().trim().replace(/[^\w\s]/g, '').split(/\s+/).sort().join(' ');
+            const norm1 = normalize(str1);
+            const norm2 = normalize(str2);
+            
+            // Calculate word overlap
+            const words1 = new Set(norm1.split(/\s+/));
+            const words2 = new Set(norm2.split(/\s+/));
+            
+            let matches = 0;
+            words1.forEach(word => {
+                if (words2.has(word)) matches++;
+            });
+            
+            const totalWords = Math.max(words1.size, words2.size);
+            return totalWords === 0 ? 0 : matches / totalWords;
         }
 
         function backToPapers() {
@@ -1549,6 +1667,12 @@
                             if (inputs[i]) inputs[i].value = opt;
                         });
                         document.getElementById(`qcorrect${id}`).value = q.correct;
+                    } else {
+                        // Restore expected answer for short/long/numeric
+                        const answerElem = document.getElementById(`qanswer${id}`);
+                        if (answerElem) {
+                            answerElem.value = q.answer || '';
+                        }
                     }
                 }, 0);
             });
@@ -1810,9 +1934,10 @@
                 </div>
 
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="generateReport('${student.email}')" class="btn btn-primary" style="flex: 1; padding: 10px;">📊 Generate Report</button>
-                        <button onclick="showViolationForm('${student.email}', '${paper}')" class="btn btn-danger" style="flex: 1; padding: 10px;">⚠️ Record Violation</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="generateReport('${student.email}')" class="btn btn-primary" style="flex: 1; padding: 10px; min-width: 150px;">📊 Generate Report</button>
+                        <button onclick="viewStudentAnswers('${paper}', '${student.email}')" class="btn btn-secondary" style="flex: 1; padding: 10px; min-width: 150px;">📝 View Answers</button>
+                        <button onclick="showViolationForm('${student.email}', '${paper}')" class="btn btn-danger" style="flex: 1; padding: 10px; min-width: 150px;">⚠️ Record Violation</button>
                     </div>
                 </div>
             `;
@@ -1941,6 +2066,89 @@
             if (message) {
                 showNotification(`✓ Message sent to ${getStudentName(studentEmail)}`, 'success');
             }
+        }
+
+        function viewStudentAnswers(paper, studentEmail) {
+            const result = appData.results.find(r => r.studentEmail === studentEmail && r.examTitle === paper);
+            
+            if (!result || !result.answers) {
+                showNotification('No answers recorded for this exam', 'error');
+                return;
+            }
+
+            let html = `<div style="background: rgba(59, 130, 246, 0.05); padding: 20px; border-radius: 8px; max-height: 700px; overflow-y: auto;">
+                <h3 style="color: #60a5fa; margin-bottom: 15px;">📝 Student Answers - ${paper}</h3>
+                <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em; color: var(--success);">
+                    ✓ Auto-marked with AI - Similarity-based scoring
+                </div>
+            `;
+
+            result.answers.forEach((answer, idx) => {
+                const isAnswered = answer.studentAnswer !== '[No Answer]';
+                const bgColor = isAnswered ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                const borderColor = isAnswered ? '#10b981' : '#ef4444';
+                const marksColor = answer.marksAwarded > 0 ? '#10b981' : '#ef4444';
+
+                html += `
+                    <div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 15px; margin-bottom: 15px; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <div style="font-weight: 600; color: #60a5fa; flex: 1;">Q${idx + 1}. ${answer.questionText}</div>
+                            <div style="text-align: right; min-width: 80px;">
+                                <div style="font-size: 0.85em; color: var(--slate);">Marks</div>
+                                <div style="font-size: 1.2em; font-weight: 700; color: ${marksColor};">${answer.marksAwarded}/${answer.marks}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 10px 0;">
+                            <div style="color: var(--slate); font-size: 0.85em; margin-bottom: 4px;">Student's Answer:</div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; border-left: 2px solid #60a5fa; font-size: 0.9em; max-height: 120px; overflow-y: auto;">
+                                ${answer.studentAnswer}
+                            </div>
+                        </div>
+                        
+                        ${answer.type === 'mcq' ? `
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div style="color: var(--slate); font-size: 0.85em;">Expected Answer:</div>
+                                <div style="color: #10b981; font-weight: 600;">${answer.correct}</div>
+                                <div style="color: ${answer.marksAwarded > 0 ? '#10b981' : '#ef4444'}; font-size: 0.85em; margin-top: 4px;">
+                                    ${answer.marksAwarded > 0 ? '✓ Correct' : '✗ Incorrect'}
+                                </div>
+                            </div>
+                        ` : (answer.type === 'short' || answer.type === 'long') ? `
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div style="color: var(--slate); font-size: 0.85em;">Expected Answer:</div>
+                                <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 4px; font-size: 0.85em; max-height: 80px; overflow-y: auto; color: #93c5fd;">
+                                    ${answer.correct || 'Not provided'}
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: rgba(96, 165, 250, 0.1); border-radius: 4px; font-size: 0.85em; color: #60a5fa;">
+                                    📊 Auto-graded: ${answer.marksAwarded}/${answer.marks} marks awarded
+                                </div>
+                            </div>
+                        ` : answer.type === 'numeric' ? `
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div style="color: var(--slate); font-size: 0.85em;">Expected Answer:</div>
+                                <div style="color: #10b981; font-weight: 600;">${answer.correct}</div>
+                                <div style="color: ${answer.marksAwarded > 0 ? '#10b981' : '#ef4444'}; font-size: 0.85em; margin-top: 4px;">
+                                    ${answer.marksAwarded > 0 ? '✓ Correct (within 5% tolerance)' : '✗ Incorrect'}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin-top: 8px; color: var(--slate); font-size: 0.85em; display: flex; gap: 15px;">
+                            <span>Type: <strong>${answer.type.toUpperCase()}</strong></span>
+                            <span>Max Marks: <strong>${answer.marks}</strong></span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
+                    <button onclick="location.reload()" class="btn btn-secondary" style="width: 100%; padding: 10px;">← Back</button>
+                </div>
+            </div>`;
+
+            document.getElementById('sessionDetails').innerHTML = html;
         }
 
         init();
